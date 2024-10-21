@@ -102,9 +102,9 @@ app.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'Email already exists' });
     }
 
-    // Hash the password (ensure both the password and salt are passed)
-    const saltRounds = 10; // Number of salt rounds
-    const hashedPassword = await bcrypt.hash(password, saltRounds); // Correctly pass the password and salt
+    // Hash the password
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     // Create a new user
     const newUser = new User({
@@ -113,18 +113,23 @@ app.post('/register', async (req, res) => {
       employeeRole,
       telephone,
       nationalId,
-      password: hashedPassword, // Store the hashed password
+      password: hashedPassword,
       address,
     });
 
-    // Save the user to the database (RegAndLogin collection)
+    // Save the user to the database
     await newUser.save();
 
-    // Create a JWT token
+    // Create a JWT token including 'name'
     const token = jwt.sign(
-      { userId: newUser._id, email: newUser.email, role: newUser.employeeRole },
-      process.env.JWT_SECRET, // Secret key from your .env file
-      { expiresIn: '1h' } // Token expiration time (1 hour)
+      {
+        userId: newUser._id,
+        email: newUser.email,
+        role: newUser.employeeRole,
+        name: newUser.name,
+      }, // Added 'name' here
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
     );
 
     // Send the token to the client
@@ -143,7 +148,7 @@ app.post('/login', async (req, res) => {
   const { email, telephone, password } = req.body;
 
   try {
-    // Find the user by either email or telephone in the 'RegAndLogin' collection
+    // Find the user by either email or telephone
     const user = await User.findOne({
       $or: [{ email: email }, { telephone: telephone }],
     });
@@ -162,11 +167,16 @@ app.post('/login', async (req, res) => {
         .json({ message: 'Invalid email, telephone, or password' });
     }
 
-    // Create a JWT token
+    // Create a JWT token including 'name'
     const token = jwt.sign(
-      { userId: user._id, email: user.email, role: user.employeeRole },
-      process.env.JWT_SECRET, // Secret key from your .env file
-      { expiresIn: '1h' } // Token expiration time
+      {
+        userId: user._id,
+        email: user.email,
+        role: user.employeeRole,
+        name: user.name,
+      }, // Added 'name' here
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
     );
 
     // Send the token to the client
@@ -191,4 +201,5 @@ const port = process.env.PORT || 3001;
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
+
 module.exports = app;
